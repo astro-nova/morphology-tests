@@ -11,12 +11,6 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 
-##TEST
-
-##TEST2
-
-
-
 ## transmission curve based on sdss r-band total throughput for airmass=1.3 extended source
 
 Filter = 'r'
