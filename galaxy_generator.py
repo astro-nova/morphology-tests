@@ -25,7 +25,8 @@ transmission = bandpass(eff_wav)
 
 
 
-##psf stuff to come. Need psf based on SDSS instrumentation and atmorpheric conditions
+##psf stuff to come. psf based on SDSS instrumentation and atmospheric conditions, but
+## we want to vary psf in some tests also, so maybe just want a Gaussian/Moffat??
 
 
 
