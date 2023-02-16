@@ -150,43 +150,43 @@ def add_asymmetry(image, rp, N, psf_sig, gal_mag, telescope_params, transmission
 
 
 
+if __name__ == '__main__':
+
+	## transmission curve based on sdss r-band total throughput for airmass=1.3 extended source
+	Filter = 'r'
+	bandpass_file = "passband_sdss_" + Filter
+	bandpass = galsim.Bandpass(bandpass_file, wave_type = u.angstrom)
+
+	telescope_params = {'g':4.8, 't_exp':53.91, 'D':2.5}
+	transmission_params = {'eff_wav':616.5, 'del_wav':137}
+
+	mag = 13
+	sky_mag = 22 ##mag/arcsec/arcsec
+	re = 10 #arcsec
+
+	galaxy = gen_galaxy(mag, re=re, n=1, q=1, beta=0, psf_sig=2, telescope_params=telescope_params, 
+		transmission_params=transmission_params, bandpass=bandpass)
+
+	centre_ra = 150
+	centre_dec = 2.3
+	pixel_scale = 0.4
+	fov = re*12/3600 #deg
 
 
-## transmission curve based on sdss r-band total throughput for airmass=1.3 extended source
-Filter = 'r'
-bandpass_file = "passband_sdss_" + Filter
-bandpass = galsim.Bandpass(bandpass_file, wave_type = u.angstrom)
+	image, wcs = gen_image(galaxy, centre_ra, centre_dec, pixel_scale, fov, fov)
 
-telescope_params = {'g':4.8, 't_exp':53.91, 'D':2.5}
-transmission_params = {'eff_wav':616.5, 'del_wav':137}
-
-mag = 13
-sky_mag = 22 ##mag/arcsec/arcsec
-re = 10 #arcsec
-
-galaxy = gen_galaxy(mag, re=re, n=1, q=1, beta=0, psf_sig=2, telescope_params=telescope_params, 
-	transmission_params=transmission_params, bandpass=bandpass)
-
-centre_ra = 150
-centre_dec = 2.3
-pixel_scale = 0.4
-fov = re*12/3600 #deg
+	rp = petrosian_sersic(fov, re, 1)/pixel_scale  ##in pixels
 
 
-image, wcs = gen_image(galaxy, centre_ra, centre_dec, pixel_scale, fov, fov)
+	image = add_asymmetry(image, rp, 12, 2.0,  mag, telescope_params, transmission_params, bandpass)
 
-rp = petrosian_sersic(fov, re, 1)/pixel_scale  ##in pixels
-
-
-image = add_asymmetry(image, rp, 12, 2.0,  mag, telescope_params, transmission_params, bandpass)
-
-# after Poisson noise is added, change to ADU by dividing by gain
-image = sky_noise(image, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
+	# after Poisson noise is added, change to ADU by dividing by gain
+	image = sky_noise(image, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
 
 
 
 
-plt.imshow(image.array, origin='lower', cmap='Greys', norm=simple_norm(image.array, stretch='log', log_a=10000))
-plt.show()
+	plt.imshow(image.array, origin='lower', cmap='Greys', norm=simple_norm(image.array, stretch='log', log_a=10000))
+	plt.show()
 
 
