@@ -284,8 +284,7 @@ if __name__ == '__main__':
 	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
 
 	# add Poisson noise to image based on pixel counts with added sky level
-	image_noise = sky_noise(image_psf, None, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
-
+	image_noise = sky_noise(image_psf, None, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 	# FINAL IMAGE IN ELECTRON COUNTS
 
 
@@ -299,7 +298,7 @@ if __name__ == '__main__':
 
 
 # 	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
-# 	image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
+# 	image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
 # 	axs[d].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
