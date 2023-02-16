@@ -229,67 +229,64 @@ def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig):
 
 	return image_psf
 
+if __name__ == '__main__':
+
+	## transmission curve based on sdss r-band total throughput for airmass=1.3 extended source
+	Filter = 'r'
+	bandpass_file = "passband_sdss_" + Filter
+	bandpass = galsim.Bandpass(bandpass_file, wave_type = u.angstrom)
 
 
-##########################################################################################
-## transmission curve based on sdss r-band total throughput for airmass=1.3 extended source
-Filter = 'r'
-bandpass_file = "passband_sdss_" + Filter
-bandpass = galsim.Bandpass(bandpass_file, wave_type = u.angstrom)
+	## gain, exptime and diameter of telescope
+	telescope_params = {'g':4.8, 't_exp':53.91, 'D':2.5}
+	## effective wavelength and width of filter
+	transmission_params = {'eff_wav':616.5, 'del_wav':137}
 
 
-## gain, exptime and diameter of telescope
-telescope_params = {'g':4.8, 't_exp':53.91, 'D':2.5}
-## effective wavelength and width of filter
-transmission_params = {'eff_wav':616.5, 'del_wav':137}
+	## galaxy and sky params
+	mag = 13 # mag of galaxy
+	sky_mag = 22 ##mag/arcsec/arcsec sky level
+	re = 10 #effective radius in arcsec
+	n = 1 # sersic index
+	q = 1 #axis ratio
+	beta = 0 # orientation angle
 
 
-## galaxy and sky params
-mag = 13 # mag of galaxy
-sky_mag = 22 ##mag/arcsec/arcsec sky level
-re = 10 #effective radius in arcsec
-n = 1 # sersic index
-q = 1 #axis ratio
-beta = 0 # orientation angle
+	## define ra, dec, pixel scale and fov
+	centre_ra = 150
+	centre_dec = 2.3
+	pixel_scale = 0.4 #arcsec/pixel
+	fov = re*12/3600 #deg. Basing off of re
 
 
-## define ra, dec, pixel scale and fov
-centre_ra = 150
-centre_dec = 2.3
-pixel_scale = 0.4 #arcsec/pixel
-fov = re*12/3600 #deg. Basing off of re
+	# generate blank image with fov and wcs info
+	image, wcs = gen_image(centre_ra, centre_dec, pixel_scale, fov, fov)
+
+	# create a galaxy with given params
+	galaxy = gen_galaxy(mag=mag, re=re, n=n, q=q, beta=beta, telescope_params=telescope_params, 
+		transmission_params=transmission_params, bandpass=bandpass)
+
+	# get petrosian radius of galaxy
+	rp = petrosian_sersic(fov, re, 1)/pixel_scale  ##in pixels
+
+	# set up creation of clumps for asymmetry
+	N = 20  # total number
+	positions_clumps=[(50,50)]  # positions (optional) 
+	fluxes_clumps = [0.2] # flux fractions (optional), must be same length as positions
+	sigmas_clumps = [3] # sigmas for gaussian clumps (optional), must be same length as positions
+
+	# generate all the clumps and their positions
+	clumps, all_xi, all_yi = create_clumps(image, rp, N, positions_clumps, fluxes_clumps, sigmas_clumps, mag, 
+		telescope_params, transmission_params, bandpass)
 
 
+	# convolve sources with psf and add to image
+	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
 
-# generate blank image with fov and wcs info
-image, wcs = gen_image(centre_ra, centre_dec, pixel_scale, fov, fov)
+	# add Poisson noise to image based on pixel counts with added sky level
+	image_noise = sky_noise(image_psf, None, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
 
-# create a galaxy with given params
-galaxy = gen_galaxy(mag=mag, re=re, n=n, q=q, beta=beta, telescope_params=telescope_params, 
-	transmission_params=transmission_params, bandpass=bandpass)
-
-# get petrosian radius of galaxy
-rp = petrosian_sersic(fov, re, 1)/pixel_scale  ##in pixels
-
-
-# set up creation of clumps for asymmetry
-N = 20  # total number
-positions_clumps=[(50,50)]  # positions (optional) 
-fluxes_clumps = [0.2] # flux fractions (optional), must be same length as positions
-sigmas_clumps = [3] # sigmas for gaussian clumps (optional), must be same length as positions
-
-# generate all the clumps and their positions
-clumps, all_xi, all_yi = create_clumps(image, rp, N, positions_clumps, fluxes_clumps, sigmas_clumps, mag, 
-	telescope_params, transmission_params, bandpass)
-
-
-# convolve sources with psf and add to image
-image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
-
-# add Poisson noise to image based on pixel counts with added sky level
-image_noise = sky_noise(image_psf, None, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
-
-# FINAL IMAGE IN ELECTRON COUNTS
+	# FINAL IMAGE IN ELECTRON COUNTS
 
 
 # ##############################################
@@ -316,14 +313,16 @@ image_noise = sky_noise(image_psf, None, sky_mag, pixel_scale, telescope_params,
 # fig2, axs2 = plt.subplots(nrows=1, ncols=4)
 # for d in range(1,5):
 
+	
 # 	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=d)
-# 	image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)/telescope_params['g']
+# 	image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
 # 	axs2[d-1].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
 # 	axs2[d-1].set_title('PSF sig=' + str(d) + '"')
 
 # fig2.show()
+
 
 
 # input()
