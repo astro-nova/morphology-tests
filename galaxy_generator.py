@@ -66,7 +66,7 @@ def gen_image(galaxy, centre_ra, centre_dec, pixel_scale, fov_x, fov_y):
 
 
 
-def gen_galaxy(mag, re, n, q, beta, psf_sig, telescope_params, transmission_params, bandpass):
+def gen_galaxy(mag, re, n, q, beta, psf_fwhm, telescope_params, transmission_params, bandpass):
 
 	g, t_exp, D = telescope_params['g'],telescope_params['t_exp'],telescope_params['D']
 	eff_wav, del_wav = transmission_params['eff_wav'],transmission_params['del_wav']
@@ -77,10 +77,10 @@ def gen_galaxy(mag, re, n, q, beta, psf_sig, telescope_params, transmission_para
 	
 	flux = uJy2galflux(uJy, eff_wav, del_wav, transmission) * t_exp * np.pi * (D*100./2)**2
 
-	gal = galsim.Sersic(n=1, flux=flux, half_light_radius=10)
-	gal = gal.shear(q = 1, beta=-1*0*galsim.radians)
+	gal = galsim.Sersic(n=n, flux=flux, half_light_radius=re)
+	gal = gal.shear(q=q, beta=-beta*galsim.radians)
 
-	psf = galsim.Gaussian(flux=1., sigma=psf_sig)
+	psf = galsim.Gaussian(flux=1., fwhm=psf_fwhm)
 	final = galsim.Convolve([gal,psf])
 
 	return final
@@ -110,7 +110,7 @@ def petrosian_sersic(fov, re, n):
 	return R_p2
 
 
-def add_asymmetry(image, rp, N, psf_sig, gal_mag, telescope_params, transmission_params, bandpass):
+def add_asymmetry(image, rp, N, psf_fwhm, gal_mag, telescope_params, transmission_params, bandpass):
 	g, t_exp, D = telescope_params['g'],telescope_params['t_exp'],telescope_params['D']
 	eff_wav, del_wav = transmission_params['eff_wav'],transmission_params['del_wav']
 	transmission = bandpass(transmission_params['eff_wav'])
@@ -137,7 +137,7 @@ def add_asymmetry(image, rp, N, psf_sig, gal_mag, telescope_params, transmission
 
 		clump = galsim.Gaussian(flux=flux*flux_fracs[randx], sigma=sigs[randx])
 		# clump = clump.shear(q = 0.5, beta=-1*galsim.radians)
-		psf = galsim.Gaussian(flux=1., sigma=psf_sig)
+		psf = galsim.Gaussian(flux=1., fwhm=psf_fwhm)
 		final = galsim.Convolve([clump,psf])
 
 		stamp = clump.drawImage(wcs=image.wcs.local(galsim.PositionI(xi, yi)))
