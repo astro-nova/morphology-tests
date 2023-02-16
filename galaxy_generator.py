@@ -66,7 +66,7 @@ def gen_image(centre_ra, centre_dec, pixel_scale, fov_x, fov_y):
 
 
 
-def gen_galaxy(mag, re, n, q, beta, psf_fwhm, telescope_params, transmission_params, bandpass):
+def gen_galaxy(mag, re, n, q, beta, telescope_params, transmission_params, bandpass):
 	"""
 	create a sersic profile galaxy with given mag, re, n, q, beta
 	"""
