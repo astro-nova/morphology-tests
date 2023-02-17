@@ -52,11 +52,11 @@ def gen_image(centre_ra, centre_dec, pixel_scale, fov_x, fov_y):
 
 	cen_coord = galsim.CelestialCoord(cen_ra, cen_dec)
 
-	image_size_x = fov_x*3600/pixel_scale
-	image_size_y = fov_y*3600/pixel_scale
+	image_size_x = round(fov_x*3600/pixel_scale)
+	image_size_y = round(fov_y*3600/pixel_scale)
 	image = galsim.Image(image_size_x, image_size_y)
 
-	affine_wcs = galsim.PixelScale(pixel_scale).affine().withOrigin(image.center)
+	affine_wcs = galsim.PixelScale(pixel_scale).affine().shiftOrigin(image.center)
 	wcs = galsim.TanWCS(affine_wcs, world_origin = cen_coord)
 	image.wcs = wcs
 	ix = int(image.center.x)
@@ -325,3 +325,5 @@ if __name__ == '__main__':
 
 
 # input()
+
+# %%
