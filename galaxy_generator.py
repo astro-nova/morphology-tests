@@ -99,7 +99,7 @@ def sky_noise(image, seed, sky_mag, pixel_scale, telescope_params, transmission_
 	
 	sky_uJy = mag2uJy(sky_mag)*pixel_scale*pixel_scale  
 	sky_electrons = uJy2galflux(sky_uJy, eff_wav, del_wav, transmission) * t_exp * np.pi * (D*100./2)**2
-
+	print(sky_electrons)
 	rng = galsim.BaseDeviate(seed) # if want to seed noise
 
 	# copy image in case iterating over and changing noise level
@@ -120,10 +120,13 @@ def petrosian_sersic(fov, re, n):
 	return R_p2
 
 
-def create_clumps(image, rp, N, positions, fluxes, sigmas, gal_mag, telescope_params, transmission_params, bandpass):
-	"""create gaussian clumps to add to galaxy image to simulate intrinsic asymmetry
-	if user specifies positions (list of tuples of (x,y)), must also specify list of flux fractions (fraction of total galaxy flux)
-		and list of gaussian sigmas
+def create_clumps(image, rp, N, r_positions, angles, fluxes, sigmas, 
+					gal_mag, telescope_params, transmission_params, bandpass):
+	"""create gaussian clumps to add to galaxy image to simulate intrinsic asymmetry.
+	rp: petrosian radius in pixels
+	if user specifies positions (an Nx1 list of radii as a fraction of rp where a clump should be placed),
+	must also specify lists of 1) angles of the clumps wrt x-axis, 2) flux fractions (fraction of total galaxy flux)
+	and 3) gaussian sigmas (clump sizes)
 	otherwise, positions, fluxes and sigmas are assigned randomly
 	number of positions, fluxes and sigmas given need not = N
 	"""
@@ -139,7 +142,7 @@ def create_clumps(image, rp, N, positions, fluxes, sigmas, gal_mag, telescope_pa
 	# get center of image and generate possible pixel values for clumps within r_p
 	xc = image.center.x
 	yc = image.center.y
-	rp = int(rp)
+	# rp = int(rp)
 	xvals = np.arange(xc-rp, xc+rp, 1).astype(int)
 	yvals = np.arange(yc-rp, yc+rp, 1).astype(int)
 
@@ -153,13 +156,18 @@ def create_clumps(image, rp, N, positions, fluxes, sigmas, gal_mag, telescope_pa
 	count = 0
 
 	# if positions, fluxes and sigmas exist and are the same dimensions, use those first
-	if positions:
-		if len(positions) == len(fluxes) == len(sigmas):
-			while count < len(positions):
+	if r_positions:
+		if len(r_positions) == len(fluxes) == len(sigmas) == len(angles):
+			while count < len(r_positions):
 
-				pos = positions[count]
-				xi = pos[0]
-				yi = pos[1]
+				# Get position in terms of (r, theta) and convert to (x, y)
+				r = r_positions[count]*rp
+				theta = angles[count]
+
+				x = round(xc+r*np.cos(theta/180*np.pi))
+				y = round(yc+r*np.sin(theta/180*np.pi))
+
+				# Get the flux fraction and clump size
 				flux_frac = fluxes[count]
 				sig = sigmas[count]
 
@@ -169,11 +177,11 @@ def create_clumps(image, rp, N, positions, fluxes, sigmas, gal_mag, telescope_pa
 
 				# add to lists
 				clumps.append(clump)
-				all_xi.append(xi)
-				all_yi.append(yi)
+				all_xi.append(x)
+				all_yi.append(y)
 				count += 1
 
-			N -= len(positions)
+			N -= len(r_positions)
 
 	# then randomly assign positions, fluxes and sigmas for remaining clumps
 	for i in range(N):
