@@ -99,7 +99,6 @@ def sky_noise(image, seed, sky_mag, pixel_scale, telescope_params, transmission_
 	
 	sky_uJy = mag2uJy(sky_mag)*pixel_scale*pixel_scale  
 	sky_electrons = uJy2galflux(sky_uJy, eff_wav, del_wav, transmission) * t_exp * np.pi * (D*100./2)**2
-	print(sky_electrons)
 	rng = galsim.BaseDeviate(seed) # if want to seed noise
 
 	# copy image in case iterating over and changing noise level
@@ -204,18 +203,20 @@ def create_clumps(image, rp, N, r_positions, angles, fluxes, sigmas,
 	return clumps, all_xi, all_yi
 
 
-def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig):
+def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
 	"""
 	adding source galaxy and clumps to image after convolving with psf
 	"""
 	# make copy of image in case iterating over and changing psf each time
 	image_psf = image.copy()
 
-	# define Gaussian psf
-	psf = galsim.Gaussian(flux=1., sigma=psf_sig)
-
-	# convolve galaxy with psf
-	final_gal = galsim.Convolve([galaxy,psf])
+	if psf_fwhm > 0:
+		# define Gaussian psf
+		psf = galsim.Gaussian(flux=1., sigma=psf_fwhm)
+		# convolve galaxy with psf
+		final_gal = galsim.Convolve([galaxy,psf])
+	else:
+		final_gal = galaxy
 
 	# stamp galaxy and add to image
 	stamp_gal = final_gal.drawImage(wcs=image_psf.wcs.local(image_psf.center)) #galaxy at image center
@@ -229,7 +230,7 @@ def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig):
 		xi = all_xi[i]
 		yi = all_yi[i]
 
-		final_clump = galsim.Convolve([clump,psf])
+		final_clump = galsim.Convolve([clump,psf]) if psf_fwhm > 0 else clump
 		stamp_clump = final_clump.drawImage(wcs=image_psf.wcs.local(galsim.PositionI(xi, yi)))
 		stamp_clump.setCenter(xi, yi)
 		bounds_clump = stamp_clump.bounds & image_psf.bounds
