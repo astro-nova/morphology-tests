@@ -72,8 +72,6 @@ def gen_image(centre_ra, centre_dec, pixel_scale, fov_x, fov_y):
 	
 	return image, wcs
 
-
-
 def gen_galaxy(mag, re, n, q, beta, telescope_params, transmission_params, bandpass):
 	"""
 	create a sersic profile galaxy with given mag, re, n, q, beta
@@ -98,7 +96,7 @@ def gen_galaxy(mag, re, n, q, beta, telescope_params, transmission_params, bandp
 def sky_noise(image, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass):
 	"""
 	take image and sky level, calculate level in electrons and apply noise with sky level and source e counts
-	can be seeded
+	can be seeded.
 	"""
 	g, t_exp, D = telescope_params['g'],telescope_params['t_exp'],telescope_params['D']
 	eff_wav, del_wav = transmission_params['eff_wav'],transmission_params['del_wav']
@@ -245,7 +243,6 @@ def create_clumps(image, rp, N,  gal_mag, telescope_params, transmission_params,
 
 	return clumps, all_xi, all_yi
 
-
 def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
 	"""
 	adding source galaxy and clumps to image after convolving with psf
@@ -268,16 +265,17 @@ def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
 	image_psf[bounds_gal] += stamp_gal[bounds_gal]
 
 
-	for i in range(len(clumps)):
-		clump = clumps[i]
-		xi = all_xi[i]
-		yi = all_yi[i]
+	if clumps:
+		for i in range(len(clumps)):
+			clump = clumps[i]
+			xi = all_xi[i]
+			yi = all_yi[i]
 
-		final_clump = galsim.Convolve([clump,psf]) if psf_fwhm > 0 else clump
-		stamp_clump = final_clump.drawImage(wcs=image_psf.wcs.local(galsim.PositionI(xi, yi)))
-		stamp_clump.setCenter(xi, yi)
-		bounds_clump = stamp_clump.bounds & image_psf.bounds
-		image_psf[bounds_clump] += stamp_clump[bounds_clump]
+			final_clump = galsim.Convolve([clump,psf]) if psf_fwhm > 0 else clump
+			stamp_clump = final_clump.drawImage(wcs=image_psf.wcs.local(galsim.PositionI(xi, yi)))
+			stamp_clump.setCenter(xi, yi)
+			bounds_clump = stamp_clump.bounds & image_psf.bounds
+			image_psf[bounds_clump] += stamp_clump[bounds_clump]
 
 	return image_psf
 
