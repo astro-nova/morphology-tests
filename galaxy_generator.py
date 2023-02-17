@@ -229,6 +229,10 @@ def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig):
 
 	return image_psf
 
+
+
+####The following is to test the code#####	
+
 if __name__ == '__main__':
 
 	## transmission curve based on sdss r-band total throughput for airmass=1.3 extended source
@@ -288,40 +292,40 @@ if __name__ == '__main__':
 	# FINAL IMAGE IN ELECTRON COUNTS
 
 
-# ##############################################
-# ## Vary the noise size, keep the psf level the same
-# seed = None
-# noises = [24,22,20,18]
-# fig, axs = plt.subplots(nrows=1, ncols=4)
-# for d in range(0,4):
-# 	sky_mag = noises[d]
+	##############################################
+	## Vary the noise size, keep the psf level the same
+	seed = None
+	noises = [24,22,20,18]
+	fig, axs = plt.subplots(nrows=1, ncols=4)
+	for d in range(0,4):
+		sky_mag = noises[d]
 
 
-# 	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
-# 	image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
+		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
+		image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
-# 	axs[d].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
-# 	axs[d].set_title('Sky level=' + str(sky_mag) + ' mag/arcsec^2')
+		axs[d].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
+		axs[d].set_title('Sky level=' + str(sky_mag) + ' mag/arcsec^2')
 
-# fig.show()
+	fig.show()
 
-# ##############################################
-# ## Vary the psf size, keep the noise level the same
-# seed = None
-# fig2, axs2 = plt.subplots(nrows=1, ncols=4)
-# for d in range(1,5):
+	##############################################
+	## Vary the psf size, keep the noise level the same
+	seed = None
+	fig2, axs2 = plt.subplots(nrows=1, ncols=4)
+	for d in range(1,5):
 
-	
-# 	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=d)
-# 	image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
-
-
-# 	axs2[d-1].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
-# 	axs2[d-1].set_title('PSF sig=' + str(d) + '"')
-
-# fig2.show()
+		
+		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=d)
+		image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
+		axs2[d-1].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
+		axs2[d-1].set_title('PSF sig=' + str(d) + '"')
 
-# input()
+	fig2.show()
+
+
+
+	input()
