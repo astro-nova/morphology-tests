@@ -18,12 +18,22 @@ import matplotlib.pyplot as plt
 def mag2uJy(mag):
 	"""
 	helper function to go from mag to uJy
+
+	Args:
+		mag (float) : AB magnitude value
+	Returns:
+		flux density in uJy 
 	"""
 	return 10**(-1*(mag-23.9)/2.5)
 
 def mag2nmgy(mag):
 	"""
 	helper function to go from mag to nmgy
+
+	Args:
+		mag (float) : AB magnitude value
+	Returns:
+		flux density in nanomaggies
 	"""
 	return 10**(-1*(mag-22.5)/2.5)
 
@@ -31,6 +41,15 @@ def mag2nmgy(mag):
 def uJy2galflux(uJy, lam_eff, lam_del, throughput):
 	"""
 	helper function to go from uJy to flux in electrons/cm^2/s using total throughput
+
+	Args:
+		uJy (float) : flux density in uJy
+		lam_eff (float) : effective wavelength in nanometers
+		lam_del (float) : FWHM of throughput curve in nanometers
+		throughput (float) : transmission value at lam_eff
+	Returns:
+		flux value in electrons/s/cm^2
+
 	"""
 	lam_eff *= 1e-9  # convert from nm to m
 	lam_del *= 1e-9  # convert from nm to m
@@ -42,9 +61,16 @@ def uJy2galflux(uJy, lam_eff, lam_del, throughput):
 def gen_image(centre_ra, centre_dec, pixel_scale, fov_x, fov_y):
 	"""
 	Generate image with wcs info
-	ra, dec in degrees
-	pixel_scale in arcsec/pixel
-	fov_x, fov_y in degrees  
+	
+	Args:
+		centre_ra (float) : right ascension in deg
+		centre_dec (float)  : declination in deg
+		pixel_scale (float) : in arcsec/pixel
+		fov_x (float) : in deg
+		fov_y (float) : in deg
+	Returns:
+		image (galsim object) : galsim image object with wcs info and fov
+		wcs (wcs object) : WCS header for image 
 	"""
 	centre_ra_hours = centre_ra/15.
 	cen_ra = centre_ra_hours * galsim.hours
@@ -69,6 +95,18 @@ def gen_image(centre_ra, centre_dec, pixel_scale, fov_x, fov_y):
 def gen_galaxy(mag, re, n, q, beta, telescope_params, transmission_params, bandpass):
 	"""
 	create a sersic profile galaxy with given mag, re, n, q, beta
+
+	Args:
+		mag (float) : AB magnitude of galaxy
+		re (float) : effective radius in arcsec
+		n (float) : sersic index
+		q (float) : axis ratio of galaxy
+		beta (float) : position angle of galaxy
+		telescope_params (dict) : telescope parameters (gain, exptime and mirror diameter)
+		transmission_params (dict) : tramission parameters (effective wavelength and width)
+		bandpass (galsim obbject) : galsim bandpass object defining the total throughput curve
+	Returns:
+		gal (galsim object) : galsim galaxy object
 	"""
 	g, t_exp, D = telescope_params['g'],telescope_params['t_exp'],telescope_params['D']
 	eff_wav, del_wav = transmission_params['eff_wav'],transmission_params['del_wav']
@@ -87,10 +125,21 @@ def gen_galaxy(mag, re, n, q, beta, telescope_params, transmission_params, bandp
 	return gal
 
 
-def sky_noise(image, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass):
+def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass, seed=None):
 	"""
 	take image and sky level, calculate level in electrons and apply noise with sky level and source e counts
 	can be seeded
+
+	Args:
+		image_psf (galsim obj) : galsim image object with sources added and convolved with psf
+		sky_mag (float) : mag/arcsec^2 value of sky background
+		pixel_scale (flaot) : arcsec/pixel
+		telescope_params (dict) : telescope parameters (gain, exptime and mirror diameter)
+		transmission_params (dict) : tramission parameters (effective wavelength and width)
+		bandpass (galsim obbject) : galsim bandpass object defining the total throughput curve
+		seed (int) : seed value for noise (default None)
+	Returns:
+		image_noise (galsim object) : image_psf + addded noise (image_psf is preserved due to copying)
 	"""
 	g, t_exp, D = telescope_params['g'],telescope_params['t_exp'],telescope_params['D']
 	eff_wav, del_wav = transmission_params['eff_wav'],transmission_params['del_wav']
@@ -103,7 +152,7 @@ def sky_noise(image, seed, sky_mag, pixel_scale, telescope_params, transmission_
 	rng = galsim.BaseDeviate(seed) # if want to seed noise
 
 	# copy image in case iterating over and changing noise level
-	image_noise = image.copy()
+	image_noise = image_psf.copy()
 	image_noise.addNoise(galsim.PoissonNoise(rng=rng, sky_level=sky_electrons))
 
 	return image_noise
@@ -112,6 +161,12 @@ def sky_noise(image, seed, sky_mag, pixel_scale, telescope_params, transmission_
 def petrosian_sersic(fov, re, n):
 	"""
 	calculate r_p based on sersic profile
+	Args:
+		fov (float) : just a stopping point for the range of r_vals [deg]
+		re (float) : effective radius in arcsec
+		n (float) : sersic index
+	Returns:
+		PR_p2 : Petrosian radius in arcsec
 	"""
 	fov = fov*3600
 	R_vals = np.arange(0.001, fov/2.0, 0.5)
@@ -120,12 +175,23 @@ def petrosian_sersic(fov, re, n):
 	return R_p2
 
 
-def create_clumps(image, rp, N, positions, fluxes, sigmas, gal_mag, telescope_params, transmission_params, bandpass):
+def create_clumps(image, rp, N, gal_mag, telescope_params, transmission_params, bandpass, positions=None, fluxes=None, sigmas=None):
 	"""create gaussian clumps to add to galaxy image to simulate intrinsic asymmetry
-	if user specifies positions (list of tuples of (x,y)), must also specify list of flux fractions (fraction of total galaxy flux)
-		and list of gaussian sigmas
-	otherwise, positions, fluxes and sigmas are assigned randomly
-	number of positions, fluxes and sigmas given need not = N
+
+	Args::
+		image (galsim object)  : galsim image with fov and wcs set (needed for setting center)
+		rp (float) : Petrosian radius in pixels
+		N (int) : number of clumps to create
+		telescope_params (dict) : telescope parameters (gain, exptime and mirror diameter)
+		transmission_params (dict) : tramission parameters (effective wavelength and width)
+		bandpass (galsim obbject) : galsim bandpass object defining the total throughput curve
+		positions (list of tuples) : list of (x,y) positions for clumps (default=None and then will be random within rp)
+		fluxes (list of floats) : list of fluxes for clumps given in fraction of total galaxy flux (default=None and then will be random)
+		sigmas (list of floats) : list of sigma values for gaussian clumps (default=None and then will be random)
+	Returns:
+		clumps (list of galsim objects) : list of all clump objects to add to image
+		all_xi (list of ints) : list of x positions for clumps
+		all_yi (list of ints) : list of y positions for clumps
 	"""
 
 	# getting galaxy flux from mag
@@ -199,6 +265,15 @@ def create_clumps(image, rp, N, positions, fluxes, sigmas, gal_mag, telescope_pa
 def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig):
 	"""
 	adding source galaxy and clumps to image after convolving with psf
+	Args:
+		image (galsim object)  : galsim image with fov and wcs set (needed for setting center)
+		galaxy (galsim object) : galaxy with defined sersic profile
+		clumps (list of galsim objects) : list of all clump objects to add to image
+		all_xi (list of ints) : list of x positions for clumps
+		all_yi (list of ints) : list of y positions for clumps
+		psf_sig (float) : sigma for gaussian psf for image
+	Returns:
+		image_psf (galsim object) : image with psf-convolved objects added in
 	"""
 	# make copy of image in case iterating over and changing psf each time
 	image_psf = image.copy()
@@ -280,15 +355,15 @@ if __name__ == '__main__':
 	sigmas_clumps = [3] # sigmas for gaussian clumps (optional), must be same length as positions
 
 	# generate all the clumps and their positions
-	clumps, all_xi, all_yi = create_clumps(image, rp, N, positions_clumps, fluxes_clumps, sigmas_clumps, mag, 
-		telescope_params, transmission_params, bandpass)
+	clumps, all_xi, all_yi = create_clumps(image, rp, N, mag, 
+		telescope_params, transmission_params, bandpass, positions_clumps, fluxes_clumps, sigmas_clumps)
 
 
 	# convolve sources with psf and add to image
 	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
 
 	# add Poisson noise to image based on pixel counts with added sky level
-	image_noise = sky_noise(image_psf, None, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
+	image_noise = sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 	# FINAL IMAGE IN ELECTRON COUNTS
 
 
@@ -302,7 +377,7 @@ if __name__ == '__main__':
 
 
 		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
-		image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
+		image_noise = sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
 		axs[d].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
@@ -318,7 +393,7 @@ if __name__ == '__main__':
 
 		
 		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=d)
-		image_noise = sky_noise(image_psf, seed, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
+		image_noise = sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
 		axs2[d-1].imshow(image_noise.array, origin='lower', cmap='Greys', norm=simple_norm(image_noise.array, stretch='log', log_a=10000))
