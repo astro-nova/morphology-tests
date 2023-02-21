@@ -89,11 +89,11 @@ def _asymmetry_func(
         residual = ap.do_photometry((img-img_rotated)**2)[0][0]
     
     # Correct for the background
-    if bg_corr is 'none':
+    if bg_corr == 'none':
         a = residual / total_flux
-    elif bg_corr is 'residual':
+    elif bg_corr == 'residual':
         a = (residual - ap.area*sky_a) / total_flux
-    elif bg_corr is 'full':
+    elif bg_corr == 'full':
         a = (residual - ap.area*sky_a) / (total_flux - ap.area*sky_norm)
 
     return a

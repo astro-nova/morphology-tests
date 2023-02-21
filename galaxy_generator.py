@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 
 
 _default_clump_properties = {
-	'r' : (0.05, 1),
-	'flux' : (0.05, 0.1),
-	'sigma' : (0.5, 5)
+	'r' : (0.05, 2),
+	'flux' : (0.05, 0.3),
+	'sigma' : (0.5, 3)
 }
 
 
@@ -131,7 +131,7 @@ def gen_galaxy(mag, re, n, q, beta, telescope_params, transmission_params, bandp
 	return gal
 
 
-def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass, seed=None):
+def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass, seed=None, rms_noise=False):
 	"""
 	take image and sky level, calculate level in electrons and apply noise with sky level and source e counts
 	can be seeded
@@ -144,6 +144,7 @@ def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_pa
 		transmission_params (dict) : tramission parameters (effective wavelength and width)
 		bandpass (galsim obbject) : galsim bandpass object defining the total throughput curve
 		seed (int) : seed value for noise (default None)
+		rms_noise (bool): whether the sky_mag is the brightness of the sky (default, False) or its RMS brightness (True)
 	Returns:
 		image_noise (galsim object) : image_psf + addded noise (image_psf is preserved due to copying)
 	"""
@@ -151,9 +152,13 @@ def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_pa
 	eff_wav, del_wav = transmission_params['eff_wav'],transmission_params['del_wav']
 
 	transmission = bandpass(transmission_params['eff_wav'])
-	
-	sky_uJy = mag2uJy(sky_mag)*pixel_scale*pixel_scale  
+
+	sky_uJy = mag2uJy(sky_mag)*pixel_scale*pixel_scale
 	sky_electrons = uJy2galflux(sky_uJy, eff_wav, del_wav, transmission) * t_exp * np.pi * (D*100./2)**2
+
+	# If noise is given as background rms instead of background brightness
+	if rms_noise: sky_electrons = sky_electrons**2
+
 	rng = galsim.BaseDeviate(seed) # if want to seed noise
 
 	# copy image in case iterating over and changing noise level
@@ -254,12 +259,15 @@ def create_clumps(image, rp, N,  gal_mag, telescope_params, transmission_params,
 
 	# Check if there are user-defined clump properties
 	if clump_properties:
+
 		# Make sure the dictionary is in the correct order to avoid bugs
 		dict_keys = ['r', 'theta', 'flux', 'sigma']
 		# Pull lists for each property out of the dictionary
 		props = [clump_properties[k] for k in dict_keys]
 		# Iterate through properties of each clump. This enforces the lists have the same length.
 		for r, th, flux_frac, sig in zip(*props):
+
+				if count >= N: break
 
 				# Get position in terms of (r, theta) and convert to (x, y)
 				x = round(xc+r*rp*np.cos(th/180*np.pi))
@@ -273,8 +281,9 @@ def create_clumps(image, rp, N,  gal_mag, telescope_params, transmission_params,
 				clumps.append(clump)
 				all_xi.append(x)
 				all_yi.append(y)
+
 				count += 1
-				if count == N: break
+				
 
 	# Calculate how many more clumps we need to generate
 	N -= count
@@ -389,17 +398,24 @@ if __name__ == '__main__':
 
 	# set up creation of clumps for asymmetry
 	N = 20  # total number
-	positions_clumps=[(50,50)]  # positions (optional) 
-	fluxes_clumps = [0.2] # flux fractions (optional), must be same length as positions
-	sigmas_clumps = [3] # sigmas for gaussian clumps (optional), must be same length as positions
+	clump_properties = {
+		'r' : [1, 2],         # Radius as a function of petrosian for each clump
+		'theta' : [45, 60],   # Position angle relative to x-axis
+		'flux' : [0.3, 0.1],  # Flux as a fraction of source flux
+		'sigma' : [0.1, 0.9]  # Size
+	}
+
+	# positions_clumps=[(50,50)]  # positions (optional) 
+	# fluxes_clumps = [0.2] # flux fractions (optional), must be same length as positions
+	# sigmas_clumps = [3] # sigmas for gaussian clumps (optional), must be same length as positions
 
 	# generate all the clumps and their positions
-	clumps, all_xi, all_yi = create_clumps(image, rp, N, mag, 
-		telescope_params, transmission_params, bandpass, positions_clumps, fluxes_clumps, sigmas_clumps)
+	clumps, all_xi, all_yi = create_clumps(
+		image, rp, N, mag, telescope_params, transmission_params, bandpass, clump_properties)
 
 
 	# convolve sources with psf and add to image
-	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
+	image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm=2.0)
 
 	# add Poisson noise to image based on pixel counts with added sky level
 	image_noise = sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
@@ -415,7 +431,7 @@ if __name__ == '__main__':
 		sky_mag = noises[d]
 
 
-		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=2.0)
+		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm=2.0)
 		image_noise = sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
@@ -431,7 +447,7 @@ if __name__ == '__main__':
 	for d in range(1,5):
 
 		
-		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_sig=d)
+		image_psf = add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm=d)
 		image_noise = sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_params, bandpass)
 
 
