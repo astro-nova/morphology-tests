@@ -26,14 +26,15 @@ def _sky_properties(img, bg_size, a_type='cas'):
     # Get the skybox and rotate it
     sky = img[:bg_size, :bg_size]
     sky_rotated = sky[::-1]
-    sky_size = bg_size**2
+    sky_size = sky.shape[0]*sky.shape[1]
 
     # Calculate asymmetry in the skybox
     if a_type == 'cas':
         sky_a = np.sum(np.abs(sky - sky_rotated))
         sky_norm = np.mean(np.abs(sky))
+
     elif a_type == 'squared':
-        sky_a = np.sum((sky-sky_rotated)**2)
+        sky_a = 10*np.sum((sky-sky_rotated)**2)
         sky_norm = np.mean(sky**2)
 
     # Calculate per pixel
@@ -74,11 +75,12 @@ def _asymmetry_func(
     assert bg_corr in ['none', 'residual', 'full'], 'bg_corr should be "none", "residual", or "full".'
 
     # Rotate the image about asymmetry center
-    img_rotated = T.rotate(img, 180, center=center)
+    img_rotated = T.rotate(img, 180, center=center, order=0)
 
     # Define the aperture
     ap = phot.EllipticalAperture(
         center, a=ap_size, b=ap_size*(1-e), theta=theta)
+    ap_area = ap.do_photometry(np.ones_like(img))[0][0]
     
     # Calculate asymmetry of the image
     if a_type == 'cas':
@@ -86,21 +88,25 @@ def _asymmetry_func(
         residual = ap.do_photometry(np.abs(img-img_rotated))[0][0]
     elif a_type == 'squared':
         total_flux = ap.do_photometry(img**2)[0][0]
-        residual = ap.do_photometry((img-img_rotated)**2)[0][0]
+        residual = 10*ap.do_photometry((img-img_rotated)**2)[0][0]
     
     # Correct for the background
     if bg_corr == 'none':
         a = residual / total_flux
     elif bg_corr == 'residual':
-        a = (residual - ap.area*sky_a) / total_flux
+        # print(residual, ap_area*sky_a, total_flux, ap_area*sky_norm)
+        a = (residual - ap_area*sky_a) / total_flux
     elif bg_corr == 'full':
-        a = (residual - ap.area*sky_a) / (total_flux - ap.area*sky_norm)
+        
+        a = (residual - ap_area*sky_a) / (total_flux - ap_area*sky_norm)
 
+    # print(sky_a)
+    # print(center, a, sky_a)
     return a
 
 
 
-def get_asymmetry(img, ap_size, bg_size, a_type='cas', bg_corr='residual', e=0, theta=0):
+def get_asymmetry(img, ap_size, bg_size, a_type='cas', bg_corr='residual', e=0, theta=0, xtol=0.5, atol=0.1):
     """Finds asymmetry of an image by optimizing the rotation center
     that minimizes the asymmetry calculated in _asymmetry_func. 
     Uses Nelder-Mead optimization from SciPy, same as statmorph.
@@ -118,11 +124,17 @@ def get_asymmetry(img, ap_size, bg_size, a_type='cas', bg_corr='residual', e=0, 
             flux is subtracted.
         e (float): ellipticity for an elliptical aperture (Default: 0 , circular).
         theta (float): rotation angle for elliptical apertures (Default: 0).
+        xtol (float): desired tolerancein x when minimizing A. 
+            Since we don't interpolate when rotating, setting smaller values
+            than 0.5 (half-pixel precision) doesn't make too much sense. 
+            SM value is 1e-6.
+        atoal (float): desired tolerance in asymmetry.
 
     Returns:
         a (float): asymmetry value
         center (np.array): [x, y] coordinates of the optimum asymmetry center
     """
+    # TODO: add desired tolerance as an input parameter
 
     # Calculate the background asymmetry and normalization
     sky_a, sky_norm = _sky_properties(img, bg_size, a_type)
@@ -136,10 +148,26 @@ def get_asymmetry(img, ap_size, bg_size, a_type='cas', bg_corr='residual', e=0, 
 
     # Optimize the asymmetry center
     res = opt.minimize(
-        _asymmetry_func, x0=x0,  tol=1e-6, method='Nelder-Mead',
+        _asymmetry_func, x0=x0, method='Nelder-Mead',
+        options={'xatol': xtol, 'fatol' : atol},
         args=(img, ap_size, sky_a, sky_norm, a_type, bg_corr, e, theta))
     
     a = res.fun
     center = res.x
-    
+    # print(f'{a:2.4f}', end=' ')
     return a, center
+
+def get_residual(image, center, a_type):
+    """Utility function that rotates the image about the center and gets the residual
+    according to an asymmetry definition given by a_type."""
+
+    assert a_type in ['cas', 'squared'], 'a_type should be "cas" or "squared"'
+    img_rotated = T.rotate(image, 180, center=center)
+    residual = image - img_rotated
+
+    if a_type == 'cas':
+        return np.abs(residual)
+    elif a_type == 'squared':
+        return residual**2
+
+
