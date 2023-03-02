@@ -164,7 +164,7 @@ def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_pa
 	# copy image in case iterating over and changing noise level
 	image_noise = image_psf.copy()
 	image_noise.addNoise(galsim.PoissonNoise(rng=rng, sky_level=sky_electrons))
-
+	
 	return image_noise
 
 
@@ -186,7 +186,7 @@ def petrosian_sersic(fov, re, n):
 
 
 def create_clumps(image, rp, N,  gal_mag, telescope_params, transmission_params, bandpass,
-				  clump_properties=None, random_clump_properties=None):
+				  clump_properties=None, random_clump_properties=None, seed=None):
 	"""Create gaussian clumps to add to galaxy image to simulate intrinsic asymmetry.
 
 	Args:

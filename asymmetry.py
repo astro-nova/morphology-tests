@@ -94,15 +94,15 @@ def _asymmetry_func(center, img, ap_size,
     # Define the aperture
     ap = phot.EllipticalAperture(
         center, a=ap_size, b=ap_size*(1-e), theta=theta)
-    ap_area = ap.do_photometry(np.ones_like(img), method='center')[0][0]
+    ap_area = ap.do_photometry(np.ones_like(img))[0][0]
 
     # Calculate asymmetry of the image
     if a_type == 'cas':
-        total_flux = ap.do_photometry(np.abs(img), method='center')[0][0]
-        residual = ap.do_photometry(np.abs(img-img_rotated), method='center')[0][0]
+        total_flux = ap.do_photometry(np.abs(img))[0][0]
+        residual = ap.do_photometry(np.abs(img-img_rotated))[0][0]
     elif a_type == 'squared':
-        total_flux = ap.do_photometry(img**2, method='center')[0][0]
-        residual = 10*ap.do_photometry((img-img_rotated)**2, method='center')[0][0]
+        total_flux = ap.do_photometry(img**2)[0][0]
+        residual = 10*ap.do_photometry((img-img_rotated)**2)[0][0]
 
 
     # Calculate sky asymmetry if sky_type is "annulus"
@@ -111,14 +111,13 @@ def _asymmetry_func(center, img, ap_size,
             center, a_in=ap_size*sky_annulus[0], a_out=ap_size*sky_annulus[1],
             b_out=ap_size*sky_annulus[1]*(1-e), theta=theta
         )
-        sky_area = ap_sky.do_photometry(np.ones_like(img), method='center')[0][0]
+        sky_area = ap_sky.do_photometry(np.ones_like(img))[0][0]
         if a_type =='cas':
-            sky_a = ap_sky.do_photometry(np.abs(img-img_rotated), method='center')[0][0] / sky_area
-            sky_norm = ap_sky.do_photometry(np.abs(img), method='center')[0][0] / sky_area
+            sky_a = ap_sky.do_photometry(np.abs(img-img_rotated))[0][0] / sky_area
+            sky_norm = ap_sky.do_photometry(np.abs(img))[0][0] / sky_area
         elif a_type == 'squared':
-            sky_a = 10*ap_sky.do_photometry((img-img_rotated)**2, method='center')[0][0] / sky_area
-            sky_norm = ap_sky.do_photometry(img**2, method='center')[0][0] / sky_area
-            
+            sky_a = 10*ap_sky.do_photometry((img-img_rotated)**2)[0][0] / sky_area
+            sky_norm = ap_sky.do_photometry(img**2)[0][0] / sky_area
     
     # Correct for the background
     if bg_corr == 'none':
