@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 
 
 _default_clump_properties = {
-	'r' : (0.05, 2),
+	'r' : (0.05, 1.5),
 	'flux' : (0.05, 0.3),
-	'sigma' : (0.5, 3)
+	'sigma' : (1, 5)
 }
 
 
@@ -164,8 +164,8 @@ def sky_noise(image_psf, sky_mag, pixel_scale, telescope_params, transmission_pa
 	# copy image in case iterating over and changing noise level
 	image_noise = image_psf.copy()
 	image_noise.addNoise(galsim.PoissonNoise(rng=rng, sky_level=sky_electrons))
-	
-	return image_noise
+
+	return image_noise, sky_electrons
 
 
 def petrosian_sersic(fov, re, n):
