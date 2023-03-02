@@ -137,10 +137,11 @@ if __name__ == '__main__':
     qs = stats.uniform.rvs(loc=0, scale=1, size=N)
     rs = -1.9*mags + 35 + stats.norm.rvs(loc=0, scale=1.5, size=N)
     rs[rs <= 1] = 1
+    rs[rs >= 15] = 15
 
     ### Run the execution in parallel
     Parallel(n_jobs=num_cores)(delayed(single_galaxy_run)(
         filepath=f'{args.path}/{i}.pkl', mag=mags[i], r_eff=rs[i], sersic_n=ns[i],
         q=qs[i], n_clumps=n_clumps[i], sky_mag=sky_mags[i], psf_fwhm=psfs[i]
-    ) for i in tqdm(range(N)) )
+    ) for i in tqdm(range(N), total=N) )
 
