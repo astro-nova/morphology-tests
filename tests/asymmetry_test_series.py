@@ -124,7 +124,7 @@ if __name__ == '__main__':
         'sky_mag' : (20, 26),
         'n_clumps' : (5, 30),
         'psf_fwhm' : (0, 2),
-        'sersic_n' : (1, 4),
+        'sersic_n' : (1, 3),
     }
 
     # Generate parameters for n galaxies
@@ -134,10 +134,10 @@ if __name__ == '__main__':
     sky_mags = stats.uniform.rvs(loc=lims['sky_mag'][0], scale=lims['sky_mag'][1] - lims['sky_mag'][0], size=N)
     n_clumps = np.random.randint(low=lims['n_clumps'][0], high=lims['n_clumps'][1], size=N)
     psfs = stats.uniform.rvs(loc=lims['psf_fwhm'][0], scale=lims['psf_fwhm'][1] - lims['psf_fwhm'][0], size=N)
-    qs = stats.uniform.rvs(loc=0, scale=1, size=N)
+    qs = stats.uniform.rvs(loc=0.2, scale=0.8, size=N)
     rs = -1.9*mags + 35 + stats.norm.rvs(loc=0, scale=1.5, size=N)
     rs[rs <= 1] = 1
-    rs[rs >= 15] = 15
+    rs[rs >= 20] = 20
 
     ### Run the execution in parallel
     Parallel(n_jobs=num_cores)(delayed(single_galaxy_run)(
