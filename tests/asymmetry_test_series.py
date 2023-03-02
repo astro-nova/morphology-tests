@@ -17,7 +17,7 @@ sys.path.append('../')
 from galaxy_generator import gen_image, gen_galaxy, petrosian_sersic, create_clumps, add_source_to_image, sky_noise, petrosian_sersic
 from asymmetry import get_asymmetry, get_residual
 
-num_cores = multiprocessing.cpu_count()
+num_cores = multiprocessing.cpu_count()-3
 
 plt.rcParams['font.size'] = 9
 plt.rcParams['axes.xmargin'] = .05  # x margin.  See `axes.Axes.margins`
@@ -142,5 +142,5 @@ if __name__ == '__main__':
     Parallel(n_jobs=num_cores)(delayed(single_galaxy_run)(
         filepath=f'{args.path}/{i}.pkl', mag=mags[i], r_eff=rs[i], sersic_n=ns[i],
         q=qs[i], n_clumps=n_clumps[i], sky_mag=sky_mags[i], psf_fwhm=psfs[i]
-    ) for i in tqdm(range(N)) )
+    ) for i in tqdm(range(N), total=N) )
 
