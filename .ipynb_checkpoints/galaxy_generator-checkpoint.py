@@ -14,7 +14,7 @@ from astropy.visualization import simple_norm
 import petrofit
 from astropy.modeling.functional_models import Gaussian2D
 import matplotlib.pyplot as plt
-from astropy.convolution import Gaussian2DKernel, convolve
+
 
 _default_clump_properties = {
 	'r' : (0.05, 1.5),
@@ -307,52 +307,52 @@ def create_clumps(image, rp, N,  gal_mag, telescope_params, transmission_params,
 
 	return clumps, all_xi, all_yi
 
+# def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
+# 	"""
+# 	adding source galaxy and clumps to image after convolving with psf
+# 	Args:
+# 		image (galsim object)  : galsim image with fov and wcs set (needed for setting center)
+# 		galaxy (galsim object) : galaxy with defined sersic profile
+# 		clumps (list of galsim objects) : list of all clump objects to add to image
+# 		all_xi (list of ints) : list of x positions for clumps
+# 		all_yi (list of ints) : list of y positions for clumps
+# 		psf_sig (float) : sigma for gaussian psf for image
+# 	Returns:
+# 		image_psf (galsim object) : image with psf-convolved objects added in
+# 	"""
+# 	# make copy of image in case iterating over and changing psf each time
+# 	image_psf = image.copy()
+
+# 	if psf_fwhm > 0:
+# 		# define Gaussian psf
+# 		psf = galsim.Gaussian(flux=1., sigma=psf_fwhm)
+# 		# convolve galaxy with psf
+# 		final_gal = galsim.Convolve([galaxy,psf])
+# 	else:
+# 		final_gal = galaxy
+
+# 	# stamp galaxy and add to image
+# 	stamp_gal = final_gal.drawImage(wcs=image_psf.wcs.local(image_psf.center)) #galaxy at image center
+# 	stamp_gal.setCenter(image_psf.center.x, image_psf.center.y)
+# 	bounds_gal = stamp_gal.bounds & image_psf.bounds
+# 	image_psf[bounds_gal] += stamp_gal[bounds_gal]
+
+
+# 	if clumps:
+# 		for i in range(len(clumps)):
+# 			clump = clumps[i]
+# 			xi = all_xi[i]
+# 			yi = all_yi[i]
+
+# 			final_clump = galsim.Convolve([clump,psf]) if psf_fwhm > 0 else clump
+# 			stamp_clump = final_clump.drawImage(wcs=image_psf.wcs.local(galsim.PositionI(xi, yi)))
+# 			stamp_clump.setCenter(xi, yi)
+# 			bounds_clump = stamp_clump.bounds & image_psf.bounds
+# 			image_psf[bounds_clump] += stamp_clump[bounds_clump]
+
+# 	return image_psf
+
 def add_source_to_image(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
-	"""
-	adding source galaxy and clumps to image after convolving with psf
-	Args:
-		image (galsim object)  : galsim image with fov and wcs set (needed for setting center)
-		galaxy (galsim object) : galaxy with defined sersic profile
-		clumps (list of galsim objects) : list of all clump objects to add to image
-		all_xi (list of ints) : list of x positions for clumps
-		all_yi (list of ints) : list of y positions for clumps
-		psf_sig (float) : sigma for gaussian psf for image
-	Returns:
-		image_psf (galsim object) : image with psf-convolved objects added in
-	"""
-	# make copy of image in case iterating over and changing psf each time
-	image_psf = image.copy()
-
-	if psf_fwhm > 0:
-		# define Gaussian psf
-		psf = galsim.Gaussian(flux=1., sigma=psf_fwhm)
-		# convolve galaxy with psf
-		final_gal = galsim.Convolve([galaxy,psf])
-	else:
-		final_gal = galaxy
-
-	# stamp galaxy and add to image
-	stamp_gal = final_gal.drawImage(wcs=image_psf.wcs.local(image_psf.center)) #galaxy at image center
-	stamp_gal.setCenter(image_psf.center.x, image_psf.center.y)
-	bounds_gal = stamp_gal.bounds & image_psf.bounds
-	image_psf[bounds_gal] += stamp_gal[bounds_gal]
-
-
-	if clumps:
-		for i in range(len(clumps)):
-			clump = clumps[i]
-			xi = all_xi[i]
-			yi = all_yi[i]
-
-			final_clump = galsim.Convolve([clump,psf]) if psf_fwhm > 0 else clump
-			stamp_clump = final_clump.drawImage(wcs=image_psf.wcs.local(galsim.PositionI(xi, yi)))
-			stamp_clump.setCenter(xi, yi)
-			bounds_clump = stamp_clump.bounds & image_psf.bounds
-			image_psf[bounds_clump] += stamp_clump[bounds_clump]
-
-	return image_psf
-
-def add_source_to_image_test(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
 	"""
 	adding source galaxy and clumps to image after convolving with psf
 	Args:
@@ -389,13 +389,8 @@ def add_source_to_image_test(image, galaxy, clumps, all_xi, all_yi, psf_fwhm):
 			stamp_clump.setCenter(xi, yi)
 			bounds_clump = stamp_clump.bounds & image_psf.bounds
 			image_psf[bounds_clump] += stamp_clump[bounds_clump]
-
-
-	if psf_fwhm > 0:
-		kernel = Gaussian2DKernel(x_stddev=psf_fwhm, y_stddev=psf_fwhm)
-		image_psf = convolve(image_psf.array, kernel)
-	else:
-		image_psf = image_psf.array
+    
+    image_psf = galsim.Convolve([image_psf, psf])
 	return image_psf
 
 
